@@ -1,0 +1,33 @@
+---
+title: "bls_data_import_and_evaluation"
+author: "Keenan Smith"
+format: html
+---
+
+```{r}
+here::i_am("development/bls_data_import_and_evaluation.qmd")
+```
+
+```{r}
+library(here)
+library(readr)
+library(dplyr)
+```
+
+```{r}
+nc_emp_hours_earnings <- read_tsv(here("data", "sm.data.34.NorthCarolina"))
+sm_area <- read_tsv(here("data", "sm.area"))
+sm_data_type <- read_tsv(here("data","sm.data_type"))
+sm_footnote <- read_tsv(here("data", "sm.footnote"))
+sm_industry <- read_tsv(here("data", "sm.industry"))
+sm_period <- read_tsv(here("data", "sm.period"))
+sm_seasonal <- read_tsv(here("data", "sm.seasonal"))
+sm_series <- read_tsv(here("data", "sm.series"))
+sm_state <- read_tsv(here("data", "sm.state"))
+sm_supersector <- read_tsv(here("data", "sm.supersector"))
+```
+
+```{r}
+
+```
+

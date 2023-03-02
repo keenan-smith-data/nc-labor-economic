@@ -1,0 +1,53 @@
+---
+title: "data_evaluation"
+author: "Keenan Smith"
+format: html
+---
+
+
+```{r}
+here::i_am("development/data_evaluation.qmd")
+```
+
+```{r}
+library(here)
+library(dplyr)
+library(readr)
+library(readxl)
+```
+
+```{r}
+#| label: Excel File Paths
+file_ind_2018_28 <- here("data", "2018-2028_Industry_Statewide_and_all_PZ_Sub_Regions.xlsx")
+file_ind_proj_2021_23 <- here("data", "2021-2023-Industry-Projections-North-Carolina.xlsx")
+file_ind_proj_2021_30 <- here("data", "Statewide_Ind_Proj_2021-2030_3.xlsx")
+
+file_occ_2018_28 <- here("data", "2018-2028_Occupation_Statewide_and_all_PZ_Sub_Regions.xlsx")
+file_occ_proj_2021_23 <- here("data", "2021-2023-Occupational-Projections-North-Carolina.xlsx")
+file_occ_proj_2021_30 <- here("data", "Statewide_Occ_Proj_2021-2030_3.xlsx")
+```
+
+```{r}
+#| label: Industry Data Read-In
+ind_2018_28 <- read_excel(file_industry_2018_28, sheet = 2, skip = 2)
+ind_proj_2021_23 <- read_excel(file_industry_proj_2021_23, sheet = 2, skip = 3)
+ind_proj_supersector <- read_excel(file_industry_proj_2021_23, sheet = 3, skip = 3)
+ind_proj_2dig <- read_excel(file_industry_proj_2021_23, sheet = 4, skip = 3)
+ind_proj_3dig <- read_excel(file_industry_proj_2021_23, sheet = 5, skip = 3)
+```
+
+
+```{r}
+#| label: Occupation Data Read-In
+occ_2018_28 <- read_excel(file_occupation_2018_28, sheet = 2, skip = 2)
+occ_proj_2021_23 <- read_excel(file_occupation_proj_2021_23, sheet = 2, skip = 3)
+occ_proj_2dig <- read_excel(file_occupation_proj_2021_23, sheet = 3, skip = 3)
+occ_proj_3dig <- read_excel(file_occupation_proj_2021_23, sheet = 4, skip = 3)
+```
+
+```{r}
+#| label: Statewide Data Read-In
+statewide_ind_proj <- read_excel(file_industry_proj_2021_30, sheet = 2)
+statewide_occ_proj <- read_excel(file_occupation_proj_2021_30, sheet = 2)
+```
+
