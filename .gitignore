@@ -7,3 +7,4 @@ la.*
 oe.*
 sm.*
 *.xlsx
+*.duckdb

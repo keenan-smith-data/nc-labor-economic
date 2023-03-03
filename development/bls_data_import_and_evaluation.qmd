@@ -12,22 +12,243 @@ here::i_am("development/bls_data_import_and_evaluation.qmd")
 library(here)
 library(readr)
 library(dplyr)
+library(dm)
 ```
 
 ```{r}
-nc_emp_hours_earnings <- read_tsv(here("data", "sm.data.34.NorthCarolina"))
-sm_area <- read_tsv(here("data", "sm.area"))
-sm_data_type <- read_tsv(here("data","sm.data_type"))
-sm_footnote <- read_tsv(here("data", "sm.footnote"))
-sm_industry <- read_tsv(here("data", "sm.industry"))
-sm_period <- read_tsv(here("data", "sm.period"))
-sm_seasonal <- read_tsv(here("data", "sm.seasonal"))
-sm_series <- read_tsv(here("data", "sm.series"))
-sm_state <- read_tsv(here("data", "sm.state"))
-sm_supersector <- read_tsv(here("data", "sm.supersector"))
+#| label: Reading in State & Metro Employment, Hours, and Earnings
+sm_nc <- read_tsv(here("data", "sm.data.34.NorthCarolina"), show_col_types = FALSE)
+# Mappings
+sm_area <- read_tsv(here("data", "sm.area"), show_col_types = FALSE)
+sm_data_type <- read_tsv(here("data","sm.data_type"), show_col_types = FALSE)
+sm_footnote <- read_tsv(here("data", "sm.footnote"), show_col_types = FALSE)
+sm_industry <- read_tsv(here("data", "sm.industry"), show_col_types = FALSE)
+sm_period <- read_tsv(here("data", "sm.period"), show_col_types = FALSE)
+sm_seasonal <- read_tsv(here("data", "sm.seasonal"), show_col_types = FALSE)
+sm_series <- read_tsv(here("data", "sm.series"), show_col_types = FALSE)
+sm_state <- read_tsv(here("data", "sm.state"), show_col_types = FALSE)
+sm_supersector <- read_tsv(here("data", "sm.supersector"), show_col_types = FALSE)
 ```
 
 ```{r}
+#| label: Manipulating the Tables for State & Metro Employment, Hours, and Earnings
+sm_dm_no_keys <- dm(sm_nc, sm_area, sm_data_type, sm_footnote, sm_industry,
+                    sm_period, sm_seasonal, sm_series, sm_state, sm_supersector)
 
+names(sm_dm_no_keys)
+```
+
+```{r}
+#| label: Setting up keys for State & Metro Data
+# NC Data Set
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_nc
+)
+# Area Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_area
+)
+# Data Type Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_data_type
+)
+# Footnote Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_footnote
+)
+# Industry Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_industry
+)
+# Period Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_period
+)
+# Seasonal Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_seasonal
+)
+# Series Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_series
+)
+# State Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_state
+)
+# SuperSector Mapping
+dm_enum_pk_candidates(
+  dm = sm_dm_no_keys,
+  table = sm_supersector
+)
+```
+
+```{r}
+#| label: Setting up Primary Keys for State & Metro Data
+sm_dm_only_pks <-
+  sm_dm_no_keys |>
+  dm_add_pk(table = sm_area, columns = area_code) |>
+  dm_add_pk(sm_data_type, data_type_code) |>
+  dm_add_pk(sm_footnote, footnote_code) |>
+  dm_add_pk(sm_industry, industry_code) |>
+  dm_add_pk(sm_period, period, year) |>
+  dm_add_pk(sm_seasonal, seasonal_code) |>
+  dm_add_pk(sm_series, series_id) |>
+  dm_add_pk(sm_state, state_code) |>
+  dm_add_pk(sm_supersector, supersector_code)
+
+sm_dm_only_pks
+```
+
+```{r}
+#| label: Setting up Foreign Keys for State & Metro Data
+# Series & Area
+dm_enum_fk_candidates(
+  dm = sm_dm_only_pks,
+  table = sm_series,
+  ref_table = sm_area
+)
+# Series & Area
+dm_enum_fk_candidates(
+  dm = sm_dm_only_pks,
+  table = sm_series,
+  ref_table = sm_data_type
+)
+
+```
+
+```{r}
+#| label: Adding Foreign Keys to State and Metro Data
+sm_dm_all_keys <-
+  sm_dm_only_pks |>
+  dm_add_fk(table = sm_series, columns = area_code, ref_table = sm_area) |>
+  dm_add_fk(sm_series, data_type_code, sm_data_type) |>
+  dm_add_fk(sm_series, industry_code, sm_industry) |>
+  dm_add_fk(sm_series, seasonal, sm_seasonal) |>
+  dm_add_fk(sm_series, state_code, sm_state) |>
+  dm_add_fk(sm_series, supersector_code, sm_supersector) |>
+  dm_add_fk(sm_nc, footnote_codes, sm_footnote) |>
+  dm_add_fk(sm_nc, period, sm_period) |>
+  dm_add_fk(sm_nc, series_id, sm_series)
+```
+
+```{r}
+#| label: Drawing Relational Database
+sm_dm_all_keys |>
+  dm_draw()
+```
+
+```{r}
+sm_dm_all_keys |>
+  dm_examine_constraints()
+```
+
+```{r}
+#| label: Initializing DuckDB
+
+library(DBI)
+sm_db <- dbConnect(duckdb::duckdb(), dbdir = here("data", "sm_data_test.duckdb"))
+
+deployed_sm <- copy_dm_to(sm_db, sm_dm_all_keys)
+
+dbDisconnect(sm_db)
+```
+
+
+```{r}
+#| label: Reading in Occupational Employment and Wage Stats
+oe_all_data <- read_tsv(here("data", "oe.data.1.AllData"), show_col_types = FALSE)
+oe_current <- read_tsv(here("data", "oe.data.0.Current"), show_col_types = FALSE)
+# Mappings
+oe_area <- read_tsv(here("data", "oe.area"), show_col_types = FALSE)
+oe_areatype <- read_tsv(here("data", "oe.areatype"), show_col_types = FALSE)
+oe_datatype <- read_tsv(here("data", "oe.datatype"), show_col_types = FALSE)
+oe_footnote <- read_tsv(here("data", "oe.footnote"), show_col_types = FALSE)
+oe_industry <- read_tsv(here("data", "oe.industry"), show_col_types = FALSE)
+oe_occupation <- read_tsv(here("data", "oe.occupation"), show_col_types = FALSE)
+oe_release <- read_tsv(here("data", "oe.release"), show_col_types = FALSE)
+oe_seasonal <- read_tsv(here("data", "oe.seasonal"), show_col_types = FALSE)
+oe_sector <- read_tsv(here("data", "oe.sector"), show_col_types = FALSE)
+oe_series <- read_tsv(here("data", "oe.series"), show_col_types = FALSE)
+```
+
+```{r}
+#| label: Manipulating the Tables for Occupational Employment and Wage Stats
+oe_dm_no_keys <- dm(oe_all_data, oe_current, oe_area, oe_areatype, oe_datatype,
+                    oe_footnote, oe_industry, oe_occupation, oe_release,
+                    oe_seasonal, oe_sector, oe_series)
+```
+
+```{r}
+#| label: Setting up Primary Keys for State & Metro Data
+oe_dm_only_pks <-
+  oe_dm_no_keys |>
+  dm_add_pk(table = oe_area, columns = area_code) |>
+  dm_add_pk(oe_areatype, areatype_code) |>
+  dm_add_pk(oe_datatype, datatype_code) |>
+  dm_add_pk(oe_footnote, footnote_code) |>
+  dm_add_pk(oe_industry, industry_code) |>
+  dm_add_pk(oe_occupation, occupation_code) |>
+  dm_add_pk(oe_seasonal, seasonal_code) |>
+  dm_add_pk(oe_sector, sector_code) |>
+  dm_add_pk(oe_series, series_id) |>
+  dm_add_pk(oe_release, release_date)
+
+oe_dm_only_pks
+```
+
+```{r}
+#| label: Adding Foreign Keys to State and Metro Data
+oe_dm_all_keys <-
+  oe_dm_only_pks |>
+  dm_add_fk(table = oe_series, columns = area_code, ref_table = oe_area) |>
+  dm_add_fk(oe_series, areatype_code, oe_areatype) |>
+  dm_add_fk(oe_series, datatype_code, oe_datatype) |>
+  dm_add_fk(oe_series, footnote_codes, oe_footnote) |>
+  dm_add_fk(oe_series, industry_code, oe_industry) |>
+  dm_add_fk(oe_series, occupation_code, oe_occupation) |>
+  dm_add_fk(oe_series, seasonal, oe_seasonal) |>
+  dm_add_fk(oe_series, sector_code, oe_sector) |>
+  dm_add_fk(oe_all_data, footnote_codes, oe_footnote) |>
+  dm_add_fk(oe_all_data, series_id, oe_series) |>
+  dm_add_fk(oe_current, footnote_codes, oe_footnote) |>
+  dm_add_fk(oe_current, series_id, oe_series)
+```
+
+```{r}
+oe_dm_all_keys |>
+  dm_draw()
+```
+
+
+```{r}
+#| label: Reading in Local Area Unemployment Statistics
+la_nc <- read_tsv(here("data", "la.data.40.NorthCarolina"), show_col_types = FALSE)
+la_metro <- read_tsv(here("data", "la.data.60.Metro"), show_col_types = FALSE)
+la_divisions <- read_tsv(here("data", "la.data.61.Division"), show_col_types = FALSE)
+la_combined <- read_tsv(here("data", "la.data.63.Combined"), show_col_types = FALSE)
+# Mappings
+la_area <- read_tsv(here("data", "la.area"), show_col_types = FALSE)
+la_areatype <- read_tsv(here("data", "la.area_type"), show_col_types = FALSE)
+la_contacts <- read_tsv(here("data", "la.contacts"), show_col_types = FALSE)
+la_footnote <- read_tsv(here("data", "la.footnote"), show_col_types = FALSE)
+la_measure <- read_tsv(here("data", "la.measure"), show_col_types = FALSE)
+la_period <- read_tsv(here("data", "la.period"), show_col_types = FALSE)
+la_series <- read_tsv(here("data", "la.series"), show_col_types = FALSE)
+```
+
+```{r}
+la_dm_no_keys <- dm(la_nc, la_metro, la_divisions, la_combined, la_area,
+                    la_areatype, la_contacts, la_footnote, la_measure,
+                    la_period, la_series)
 ```
 

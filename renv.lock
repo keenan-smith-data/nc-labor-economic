@@ -613,12 +613,11 @@
     "renv": {
       "Package": "renv",
       "Version": "0.17.0",
-      "Source": "Repository",
+      "OS_type": null,
+      "NeedsCompilation": "no",
       "Repository": "CRAN",
-      "Requirements": [
-        "utils"
-      ],
-      "Hash": "ce3065fc1a0b64a859f55ac3998d6927"
+      "Path": null,
+      "Source": "Repository"
     },
     "rlang": {
       "Package": "rlang",
